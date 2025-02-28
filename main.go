@@ -5,6 +5,7 @@ import (
 	"browser/internal/logcleaner"
 	"browser/internal/utils"
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -33,19 +34,7 @@ var GeckoBrowsers = []string{
 	"Waterfox",
 }
 
-var wordlists = []string{
-	"blasted",
-	"Vk",
-	"discord",
-	"nemezida",
-	"telegram",
-	"cheat",
-	"rml",
-	"forum",
-	"обход",
-	"telegraph",
-	"rustme",
-}
+var wordlists []string
 
 var (
 	LOCALAPPDATA   = os.Getenv("LOCALAPPDATA")
@@ -58,10 +47,10 @@ func main() {
 		fmt.Println("Необходимо запустить программу от имени администратора.")
 		fmt.Println("1 - Очистка истории браузеров")
 		fmt.Println("2 - Очистка основных логов в реестре")
-		fmt.Println("3 - очистка файлов Prefetch и Minidump")
-		fmt.Println("4 - очистка журналов Windows")
+		fmt.Println("3 - Очистка файлов Prefetch и Minidump")
+		fmt.Println("4 - Очистка журналов Windows")
 		fmt.Println("5 - Очистка всех логов в реестре, файлов Prefetch и Minidump")
-		fmt.Println("6 - Очистка всех логов, файлов Prefetch, журналов Windows и истории браузер")
+		fmt.Println("6 - Очистка всех логов, файлов Prefetch, журналов Windows и истории браузеров")
 		fmt.Println("Нажмите ENTER для выхода")
 
 		fmt.Print("Ваш выбор: ")
@@ -101,24 +90,47 @@ func main() {
 }
 
 func DeleteHistoryBrowser() error {
-	err := utils.KillAllBrowsers()
+	var err error
+	wordlists, err = utils.ReadKeywordsFromFile("words.txt")
 	if err != nil {
-		logger.Error("ошибка закрытия браузеров", err)
+		return fmt.Errorf("ошибка чтения файла ключевых слов: %v", err)
+	}
+
+	if len(wordlists) == 0 {
+		fmt.Println("Список ключевых слов пуст")
+	} else {
+		fmt.Println("Используемые ключевые слова:", wordlists)
+	}
+
+	err = utils.KillAllBrowsers()
+	if err != nil {
+		logger.Errorf("ошибка закрытия браузеров: %v", err)
 		return err
 	}
 
 	chromium, err := history.Chromium(&ChromiumBrowsers, &LOCALAPPDATA, &wordlists)
 	if err != nil {
-		logger.Errorf("ошибка очистки браузера chromium: %s", err)
-		return err
+		logger.Errorf("ошибка очистки браузеров Chromium: %v", err)
+	} else {
+		fmt.Println("Результат очистки Chromium-браузеров:")
+		for _, res := range chromium {
+			fmt.Println(res)
+		}
 	}
-
 	gecko, err := history.Gecko(&GeckoBrowsers, &ROAMINGAPPDATA, &wordlists)
 	if err != nil {
-		logger.Errorf("ошибка очистки браузера Gecko: %s", err)
-		return err
+		logger.Errorf("ошибка очистки браузеров Gecko: %v", err)
+		if len(chromium) == 0 {
+			return err
+		}
+	} else {
+		fmt.Println("Результат очистки Gecko-браузеров:")
+		for _, res := range gecko {
+			fmt.Println(res)
+		}
 	}
-
-	fmt.Printf("Chromium browsers cleaned: %v\nGecko browsers cleaned: %v\n", chromium, gecko)
+	if len(chromium) == 0 && len(gecko) == 0 {
+		return errors.New("не удалось очистить ни один браузер")
+	}
 	return nil
 }

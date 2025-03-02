@@ -13,7 +13,7 @@
 Шаги сборки:
 
  1.Установка зависимостей
-  go mod download
+# go mod download
 
  2.Сборка приложения:
 # go build -o history-cleaner.exe main.go

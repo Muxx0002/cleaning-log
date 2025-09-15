@@ -1,7 +1,7 @@
 # Утилита для удаления информации об активности пользователя в системе Windows и очистки истории браузеров на основе движков Chromium и Gecko
 
 
-
+https://drive.google.com/drive/folders/1OUAgPFLDdpEwvHelySlpH9_xWXe687eG
 ---
 # инструкция по сборке
 
